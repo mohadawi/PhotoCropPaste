@@ -272,7 +272,7 @@ static int memWarnig;
     //add toolbar
     UIWindow *window=[[[UIApplication sharedApplication] windows] firstObject];
     CGRect gameArea = CGRectMake(0, 0, window.bounds.size.width, window.bounds.size.height);
-    self.myToolbar = [[UIToolbar alloc] initWithFrame:CGRectMake(0, gameArea.size.height - 60, gameArea.size.width, 60)];
+    self.myToolbar = [[UIToolbar alloc] initWithFrame:CGRectMake(0, gameArea.size.height - 100, gameArea.size.width, 60)];
     //float topInset = -10.0f;
     
     //fexible space button
@@ -327,14 +327,16 @@ static int memWarnig;
     bwImageDP=[self convertToGrayscale:bwImageDP];
     bwImageDP=[self roundedRectImageFromImage:bwImageDP withRadious:6];
     //[btn setImage:[UIImage imageNamed:@"crop_draw1.png"]];
-    btn.frame = CGRectMake(0, 0, 65, 55);
+    btn.frame  = CGRectMake(0, 0, 80, 64);
     //[btn setImage:bwImageDP forState:UIControlStateNormal];
     //[myButton setImage:[UIImage imageNamed:@"button_pressed.png"] forState:UIControlStateHighlighted];
     
     //btn.imageEdgeInsets=UIEdgeInsetsMake(5, 5.0f, 12, 7.0f);
     
     //set the label text
-    [self formatLabelForButton:btn withHeight:10 andVerticalOffset:btn.frame.size.height-10 andText:@"Free crop" withFontSize:9 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:NO withTag:11];
+    //[self formatLabelForButton:btn withHeight:10 andVerticalOffset:0 andText:@"Free crop" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:NO withTag:11];
+    
+    [self formatWrappedTitleForButton:btn andText:@"Free crop" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:YES];
     
     //    [btn setTitleEdgeInsets:UIEdgeInsetsMake(0, 0.0f, -35, 0.0f)];
     //    [btn setTitle:@"Draw" forState:UIControlStateNormal];
@@ -355,12 +357,14 @@ static int memWarnig;
     bwImageRP=[self convertToGrayscale:bwImageRP];
     bwImageRP=[self roundedRectImageFromImage:bwImageRP withRadious:6];
     //[btnR setBackgroundImage:[[UIImage alloc] init] forState:UIControlStateNormal];
-    btnR.frame = CGRectMake(0, 0, 65, 55);
+    btnR.frame  = CGRectMake(0, 0, 80, 80);
+   
     //[btnR setImage:bwImageRP forState:UIControlStateNormal];
     //btnR.imageEdgeInsets=UIEdgeInsetsMake(5, 5.0f, 12, 7.0f);
     
     //set the label text
-    [self formatLabelForButton:btnR withHeight:10 andVerticalOffset:btnR.frame.size.height-10 andText:@"Rect crop" withFontSize:9 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:NO withTag:11];
+    //[self formatLabelForButton:btnR withHeight:10 andVerticalOffset:btnR.frame.size.height-10 andText:@"Rect crop" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:NO withTag:11];
+    [self formatWrappedTitleForButton:btnR andText:@"X" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:YES];
     
     //btnR.alpha=0.2;
     [btnR addTarget:self action:@selector(toogleSelectDraw:) forControlEvents:UIControlEventTouchUpInside];
@@ -376,11 +380,12 @@ static int memWarnig;
     bwImageSP=[self convertToGrayscale:bwImageSP];
     bwImageSP=[self roundedRectImageFromImage:bwImageSP withRadious:6];
     //[btnR setBackgroundImage:[[UIImage alloc] init] forState:UIControlStateNormal];
-    btnS.frame = CGRectMake(0, 0, 65, 55);
+    btnS.frame  = CGRectMake(0, 0, 80, 64);
 
     
     //set the label text
-    [self formatLabelForButton:btnS withHeight:10 andVerticalOffset:btnS.frame.size.height-10 andText:@"Segment" withFontSize:9 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:NO withTag:11];
+    //[self formatLabelForButton:btnS withHeight:10 andVerticalOffset:btnS.frame.size.height-10 andText:@"Segment" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:NO withTag:11];
+    [self formatWrappedTitleForButton:btnS andText:@"Segment" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:YES];
     
     //btnR.alpha=0.2;
     [btnS addTarget:self action:@selector(testSegmentation) forControlEvents:UIControlEventTouchUpInside];
@@ -396,9 +401,21 @@ static int memWarnig;
     //[myToolbar setBarTintColor:[UIColor darkGrayColor]];
     [myToolbar setBarStyle:UIBarStyleBlack];
     
-    
-    
     [self.view addSubview:self.myToolbar];
+    
+    // Add constraints to position the toolbar at the top
+    [NSLayoutConstraint activateConstraints:@[
+            [myToolbar.topAnchor constraintEqualToSystemSpacingBelowAnchor:self.view.safeAreaLayoutGuide.topAnchor multiplier:1.0],
+            [myToolbar.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+            [myToolbar.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+            // You can add a height constraint if needed
+            [myToolbar.heightAnchor constraintEqualToConstant:100]
+        ]];
+    
+    
+    
+   
+
     if  (self.rootFlag==-1)
     {
 //        //disable picker button
@@ -476,7 +493,91 @@ static int memWarnig;
     
 }
 
+- (void)formatLabelForButton2:(UIButton *)button
+                  withHeight:(double)height
+           andVerticalOffset:(double)offset
+                     andText:(NSString *)labelText
+                withFontSize:(double)fontSize
+               withFontColor:(UIColor *)color
+                 andBoldFont:(BOOL)formatAsBold
+                     withTag:(NSInteger)tagNumber
+{
+    @try {
+        if (!button || !button.superview) { return; }
 
+        UILabel *label = [[UILabel alloc] init];
+        label.translatesAutoresizingMaskIntoConstraints = NO;
+        label.text = labelText;
+        label.textColor = color ?: [UIColor blackColor];
+        label.font = formatAsBold ? [UIFont boldSystemFontOfSize:fontSize]
+                                  : [UIFont systemFontOfSize:fontSize];
+        label.textAlignment = NSTextAlignmentCenter;
+        label.backgroundColor = [UIColor clearColor];
+        label.tag = tagNumber;
+        label.numberOfLines = 1; // change to 0 if you want wrapping
+
+        UIView *container = button.superview;
+
+        // Special handling if the container is a UIStackView
+        if ([container isKindOfClass:[UIStackView class]]) {
+            UIStackView *stack = (UIStackView *)container;
+
+            // Insert the label right AFTER the button so it shows "under" it.
+            NSUInteger idx = [stack.arrangedSubviews indexOfObject:button];
+            if (idx == NSNotFound) {
+                // Fallback: just append
+                [stack addArrangedSubview:label];
+            } else {
+                // Insert at next index (under the button in a vertical stack)
+                [stack insertArrangedSubview:label atIndex:idx + 1];
+            }
+
+            // If vertical stack: label will appear below automatically.
+            // You can adjust spacing via stack.spacing or set custom spacing:
+            // [stack setCustomSpacing:offset afterView:button];
+
+            // If you need extra gap equal to 'offset', prefer custom spacing:
+            if (@available(iOS 11.0, *)) {
+                [stack setCustomSpacing:offset afterView:button];
+            }
+
+            // For width: stack manages it. If you need the label to match button width exactly,
+            // make sure the stack's alignment is .fill (default) or add:
+            // [label.widthAnchor constraintEqualToAnchor:button.widthAnchor].active = YES;
+
+            // For fixed height, only set it if you really want to fix it:
+            if (height > 0) {
+                [label.heightAnchor constraintEqualToConstant:height].active = YES;
+            }
+
+        } else {
+            // Normal (non-stack) container: add as sibling and constrain to the button
+            [container addSubview:label];
+
+            [NSLayoutConstraint activateConstraints:@[
+                // Center horizontally with the button
+                [label.centerXAnchor constraintEqualToAnchor:button.centerXAnchor],
+
+                // Place label BELOW the button by 'offset'
+                [label.topAnchor constraintEqualToAnchor:button.bottomAnchor constant:offset],
+
+                // Match width to the button (or use leading/trailing anchors if preferred)
+                [label.widthAnchor constraintEqualToAnchor:button.widthAnchor],
+
+                // Fixed height (or omit and let intrinsic content drive height)
+                [label.heightAnchor constraintEqualToConstant:height]
+            ]];
+
+            // Ensure it's not behind other overlapping siblings
+            [container bringSubviewToFront:label];
+        }
+
+        // Optional accessibility improvement
+        // button.accessibilityLabel = [NSString stringWithFormat:@"%@, %@", button.accessibilityLabel ?: @"", labelText ?: @""];
+
+    } @catch (__unused NSException *exception) {
+    }
+}
 
 - (void) formatLabelForButton: (UIButton *) button withHeight: (double) height andVerticalOffset: (double) offset andText: (NSString *) labelText withFontSize: (double) fontSize withFontColor: (UIColor *) color andBoldFont:(BOOL) formatAsBold withTag: (NSInteger) tagNumber {
     
@@ -485,7 +586,7 @@ static int memWarnig;
         double buttonWidth= button.frame.size.width;
         
         // Initialize buttonLabel
-        UILabel *buttonLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, offset, buttonWidth, height)];
+        UILabel *buttonLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, buttonWidth, height)];
         
         // Set font size and weight of label
         if (formatAsBold) {
@@ -505,9 +606,24 @@ static int memWarnig;
         
         // Center label
         buttonLabel.textAlignment = NSTextAlignmentCenter;
+        buttonLabel.numberOfLines = 0;
+        buttonLabel.lineBreakMode = NSLineBreakByWordWrapping;
         
         // Add label to button
         [button addSubview:buttonLabel];
+        [NSLayoutConstraint activateConstraints:@[
+            // Center horizontally with the button
+            [buttonLabel.centerXAnchor constraintEqualToAnchor:button.centerXAnchor],
+
+            // Place label BELOW the button by 'offset'
+            [buttonLabel.topAnchor constraintEqualToAnchor:button.bottomAnchor constant:offset],
+
+            // Match width to the button (or use leading/trailing anchors if preferred)
+            [buttonLabel.widthAnchor constraintEqualToAnchor:button.widthAnchor],
+
+            // Fixed height (or omit and let intrinsic content drive height)
+            //[buttonLabel.heightAnchor constraintEqualToConstant:height]
+        ]];
     }
     @catch (NSException *exception) {
         
@@ -517,6 +633,32 @@ static int memWarnig;
     }
     
 } // End formatLabelForButton
+
+- (void)formatWrappedTitleForButton:(UIButton *)button
+                                andText:(NSString *)labelText
+                            withFontSize:(double)fontSize
+                           withFontColor:(UIColor *)color
+                             andBoldFont:(BOOL)formatAsBold
+    {
+        // 1. IMPORTANT: Enable Auto Layout for the button
+        button.translatesAutoresizingMaskIntoConstraints = NO;
+        
+        // 2. IMPORTANT: Force a width so the text has no choice but to wrap
+        // Set this to the width you actually want (e.g., 70 or 80)
+        [button.widthAnchor constraintEqualToConstant:70.0].active = YES;
+
+        // 3. Configure wrapping behavior
+        button.titleLabel.numberOfLines = 2;
+        button.titleLabel.lineBreakMode = NSLineBreakByWordWrapping; // Breaks at spaces
+        button.titleLabel.textAlignment = NSTextAlignmentCenter;
+
+        // ... rest of your existing font and title code ...
+        UIFont *font = formatAsBold ? [UIFont boldSystemFontOfSize:fontSize] : [UIFont systemFontOfSize:fontSize];
+        button.titleLabel.font = font;
+        [button setTitleColor:(color ?: UIColor.whiteColor) forState:UIControlStateNormal];
+        [button setTitle:labelText forState:UIControlStateNormal];
+}
+
 
 -(void)addScrollView2 :(UIImage*)imageA{
     @try {
