@@ -63,6 +63,11 @@ static int memWarnig;
 @synthesize imageRect;
 @synthesize shapeType;
 @synthesize activityIndicator;
+@synthesize btnRect;
+@synthesize btnFree;
+@synthesize btnPaste;
+@synthesize btnSegment;
+
 //@synthesize imgView;
 
 - (void)viewDidLoad
@@ -107,7 +112,10 @@ static int memWarnig;
     self.maximumZoomScale=4;
     
     [self addScrollView1];
-    [self addToolBar];
+    //[self addScrollableToolbarAtTop2];
+    //[self addScrollableToolbarAtTop_StackView];
+    [self addScrollableToolbarAtTop_StackView_Circular];
+    //[self addToolBar];
     
     
     
@@ -267,38 +275,165 @@ static int memWarnig;
     //NSLog(@"i am in");
 }
 
+- (void)addScrollableToolbarAtTop {
+    // 1) Scroll view that scrolls horizontally
+    UIScrollView *scroll = [[UIScrollView alloc] init];
+    scroll.translatesAutoresizingMaskIntoConstraints = NO;
+    scroll.showsHorizontalScrollIndicator = YES;
+    scroll.alwaysBounceHorizontal = YES;
+    scroll.alwaysBounceVertical = NO;
+    scroll.backgroundColor = [UIColor clearColor];
+    [self.view addSubview:scroll];
 
--(void)addToolBar{
-    //add toolbar
-    UIWindow *window=[[[UIApplication sharedApplication] windows] firstObject];
-    CGRect gameArea = CGRectMake(0, 0, window.bounds.size.width, window.bounds.size.height);
-    self.myToolbar = [[UIToolbar alloc] initWithFrame:CGRectMake(0, gameArea.size.height - 100, gameArea.size.width, 60)];
-    //float topInset = -10.0f;
+    [NSLayoutConstraint activateConstraints:@[
+        [scroll.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor],
+        [scroll.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [scroll.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [scroll.heightAnchor constraintEqualToConstant:100.0] // bar height
+    ]];
+
+    // 2) Content container pinned to contentLayoutGuide (horizontal scrolling only)
+    UIView *content = [[UIView alloc] init];
+    content.translatesAutoresizingMaskIntoConstraints = NO;
+    [scroll addSubview:content];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [content.topAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.topAnchor],
+        [content.bottomAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.bottomAnchor],
+        [content.leadingAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.leadingAnchor],
+        [content.trailingAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.trailingAnchor],
+        // lock height to scroll’s visible height so it only scrolls horizontally
+        [content.heightAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.heightAnchor]
+    ]];
+
+    // 3) Optional: blurred background to mimic a toolbar
+    UIVisualEffectView *barBackground =
+        [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial]];
+    barBackground.translatesAutoresizingMaskIntoConstraints = NO;
+    [scroll addSubview:barBackground];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [barBackground.topAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.topAnchor],
+        [barBackground.bottomAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.bottomAnchor],
+        [barBackground.leadingAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.leadingAnchor],
+        [barBackground.trailingAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.trailingAnchor],
+    ]];
+
+    // 4) Horizontal stack for your buttons
+    UIStackView *stack = [[UIStackView alloc] init];
+    stack.translatesAutoresizingMaskIntoConstraints = NO;
+    stack.axis = UILayoutConstraintAxisHorizontal;
+    stack.alignment = UIStackViewAlignmentCenter;
+    stack.spacing = 12.0; // same as your intended fixed spacing
+    [content addSubview:stack];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [stack.topAnchor constraintEqualToAnchor:content.topAnchor],
+        [stack.bottomAnchor constraintEqualToAnchor:content.bottomAnchor],
+        [stack.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:12.0],
+        [stack.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-12.0],
+    ]];
+
+    UIColor *accent = [UIColor colorWithRed:255.0/255.0 green:0.0/255.0 blue:128.0/255.0 alpha:1.0];
+
+    // Helper to make an 80×80 rounded “pill” button
+    UIButton* (^makeBtn)(NSString*, SEL) = ^UIButton* (NSString *title, SEL action) {
+        UIButton *b = [UIButton buttonWithType:UIButtonTypeSystem];
+        b.translatesAutoresizingMaskIntoConstraints = NO;
+        [b setTitle:title forState:UIControlStateNormal];
+        [b setTitleColor:accent forState:UIControlStateNormal];
+        [b setTitleColor:[accent colorWithAlphaComponent:0.5] forState:UIControlStateHighlighted];
+        b.titleLabel.font = [UIFont systemFontOfSize:16 weight:UIFontWeightSemibold];
+        b.titleLabel.numberOfLines = 2;
+        b.titleLabel.textAlignment = NSTextAlignmentCenter;
+        [b addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
+        [NSLayoutConstraint activateConstraints:@[
+            [b.widthAnchor constraintEqualToConstant:80],
+            [b.heightAnchor constraintEqualToConstant:80]
+        ]];
+        b.layer.cornerRadius = 40;
+        b.layer.masksToBounds = YES;
+        return b;
+    };
+
+    UIButton *pick    = makeBtn(@"Add",          @selector(actionShowPhotoLibrary));
+    UIButton *back    = makeBtn(@"Back",         @selector(cancel));
+    UIButton *rect    = makeBtn(@"Rect crop",    @selector(toogleSelectDraw:));
+    UIButton *free    = makeBtn(@"Free crop",    @selector(handleExit));
+    UIButton *segment = makeBtn(@"Segment",      @selector(testSegmentation));
+    UIButton *paste   = makeBtn(@"Paste",        @selector(actionShowPhotoLibrary1));
+    UIButton *save    = makeBtn(@"Save",         @selector(actionSave));
+
+    // Keep references instead of using fragile indices later
     
+    self.btnRect    = rect;
+    self.btnFree    = free;
+    self.btnSegment = segment;
+    self.btnPaste   = paste;
+
+    for (UIButton *b in @[pick, back, rect, free, segment, paste, save]) {
+        [stack addArrangedSubview:b];
+    }
+
+    // Mirror your rootFlag logic (disable some items)
+    if (self.rootFlag != -1) {
+        for (UIButton *b in @[rect, free, segment, paste]) {
+            b.enabled = NO;
+            b.alpha   = 0.4;
+        }
+    }
+}
+
+- (void)addScrollableToolbarAtTop2 {
+
+    // 1) Scroll view that will scroll horizontally
+    UIScrollView *barScroll = [[UIScrollView alloc] init];
+    barScroll.translatesAutoresizingMaskIntoConstraints = NO;
+    barScroll.showsHorizontalScrollIndicator = YES;
+    barScroll.alwaysBounceHorizontal = YES;
+    barScroll.alwaysBounceVertical   = NO;
+    barScroll.backgroundColor = [UIColor greenColor];
+
+    [self.view addSubview:barScroll];
+
+    // Pin to top safe area; change to bottomAnchor if you want a bottom bar
+    [NSLayoutConstraint activateConstraints:@[
+        [barScroll.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor],
+        [barScroll.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [barScroll.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [barScroll.heightAnchor constraintEqualToConstant:100] // your toolbar height
+    ]];
+
+    // 2) Create the toolbar (real UIToolbar)
+    self.myToolbar = [[CustomToolbar alloc] init];
+    myToolbar.translatesAutoresizingMaskIntoConstraints = NO;
+    myToolbar.translucent = NO;
+
+    [barScroll addSubview:myToolbar];
+
     //fexible space button
     UIBarButtonItem *spaceItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
     
     
     //paste custom button
     UIButton *paste2 = [UIButton buttonWithType:UIButtonTypeCustom];
-    paste2.titleLabel.font=[UIFont systemFontOfSize: 16];
+    paste2.translatesAutoresizingMaskIntoConstraints = NO;
     [paste2 setTitle:@"Paste" forState:UIControlStateNormal];
     [paste2 setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
     [paste2 setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:0.5] forState:UIControlStateHighlighted];
-    paste2.frame = CGRectMake(0, 0, 60, 55);
-    [paste2 setTitleEdgeInsets:UIEdgeInsetsMake(0.0f, 2.0f, 0.0f, 0.0f)];
     [paste2 addTarget:self action:@selector(actionShowPhotoLibrary1) forControlEvents:UIControlEventTouchUpInside];
+    [self formatWrappedTitleForButton:paste2];
+    
     UIBarButtonItem * paste3 = [[UIBarButtonItem alloc] initWithCustomView:paste2];
     
     
     //Back custom button
     UIButton *cancel2 = [UIButton buttonWithType:UIButtonTypeCustom];
-    cancel2.titleLabel.font=[UIFont systemFontOfSize: 16];
     [cancel2 setTitle:@"Back" forState:UIControlStateNormal];
     [cancel2 setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
     [cancel2 setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:0.5] forState:UIControlStateHighlighted];
-    cancel2.frame = CGRectMake(0, 0, 60, 55);
     [cancel2 addTarget:self action:@selector(cancel) forControlEvents:UIControlEventTouchUpInside];
+    [self formatWrappedTitleForButton:cancel2];
     UIBarButtonItem * cancel3 = [[UIBarButtonItem alloc] initWithCustomView:cancel2];
     
     
@@ -308,8 +443,8 @@ static int memWarnig;
     [save2 setTitle:@"Save" forState:UIControlStateNormal];
     [save2 setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
     [save2 setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:0.5] forState:UIControlStateHighlighted];
-    save2.frame = CGRectMake(0, 0, 60, 55);
     [save2 addTarget:self action:@selector(actionSave) forControlEvents:UIControlEventTouchUpInside];
+    [self formatWrappedTitleForButton:save2];
     UIBarButtonItem * save3 = [[UIBarButtonItem alloc] initWithCustomView:save2];
     
     //picker image system button
@@ -327,25 +462,12 @@ static int memWarnig;
     bwImageDP=[self convertToGrayscale:bwImageDP];
     bwImageDP=[self roundedRectImageFromImage:bwImageDP withRadious:6];
     //[btn setImage:[UIImage imageNamed:@"crop_draw1.png"]];
-    btn.frame  = CGRectMake(0, 0, 80, 64);
-    //[btn setImage:bwImageDP forState:UIControlStateNormal];
-    //[myButton setImage:[UIImage imageNamed:@"button_pressed.png"] forState:UIControlStateHighlighted];
-    
-    //btn.imageEdgeInsets=UIEdgeInsetsMake(5, 5.0f, 12, 7.0f);
-    
-    //set the label text
-    //[self formatLabelForButton:btn withHeight:10 andVerticalOffset:0 andText:@"Free crop" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:NO withTag:11];
-    
-    [self formatWrappedTitleForButton:btn andText:@"Free crop" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:YES];
-    
-    //    [btn setTitleEdgeInsets:UIEdgeInsetsMake(0, 0.0f, -35, 0.0f)];
-    //    [btn setTitle:@"Draw" forState:UIControlStateNormal];
-    //    [btn setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
-    //    btn.titleLabel.font = [UIFont systemFontOfSize:10];
-    
+    [btn setTitle:@"Free crop" forState:UIControlStateNormal];
+    [btn setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
+    [self formatWrappedTitleForButton:btn];
     [btn addTarget:self action:@selector(handleExit) forControlEvents:UIControlEventTouchUpInside];
     UIBarButtonItem * aBarButton = [[UIBarButtonItem alloc] initWithCustomView:btn];
-    [aBarButton setBackgroundVerticalPositionAdjustment:-20.0f forBarMetrics:UIBarMetricsDefault];
+    //[aBarButton setBackgroundVerticalPositionAdjustment:-20.0f forBarMetrics:UIBarMetricsDefault];
     
     //crop rect image button
     UIButton *btnR = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -357,15 +479,16 @@ static int memWarnig;
     bwImageRP=[self convertToGrayscale:bwImageRP];
     bwImageRP=[self roundedRectImageFromImage:bwImageRP withRadious:6];
     //[btnR setBackgroundImage:[[UIImage alloc] init] forState:UIControlStateNormal];
-    btnR.frame  = CGRectMake(0, 0, 80, 80);
    
     //[btnR setImage:bwImageRP forState:UIControlStateNormal];
     //btnR.imageEdgeInsets=UIEdgeInsetsMake(5, 5.0f, 12, 7.0f);
     
     //set the label text
     //[self formatLabelForButton:btnR withHeight:10 andVerticalOffset:btnR.frame.size.height-10 andText:@"Rect crop" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:NO withTag:11];
-    [self formatWrappedTitleForButton:btnR andText:@"X" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:YES];
-    
+    //[self formatWrappedTitleForButton:btnR andText:@"X" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:YES];
+    [btnR setTitle:@"Rect crop" forState:UIControlStateNormal];
+    [btnR setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
+    [self formatWrappedTitleForButton:btnR];
     //btnR.alpha=0.2;
     [btnR addTarget:self action:@selector(toogleSelectDraw:) forControlEvents:UIControlEventTouchUpInside];
     UIBarButtonItem * aBarButtonR = [[UIBarButtonItem alloc] initWithCustomView:btnR];
@@ -380,12 +503,14 @@ static int memWarnig;
     bwImageSP=[self convertToGrayscale:bwImageSP];
     bwImageSP=[self roundedRectImageFromImage:bwImageSP withRadious:6];
     //[btnR setBackgroundImage:[[UIImage alloc] init] forState:UIControlStateNormal];
-    btnS.frame  = CGRectMake(0, 0, 80, 64);
 
     
     //set the label text
     //[self formatLabelForButton:btnS withHeight:10 andVerticalOffset:btnS.frame.size.height-10 andText:@"Segment" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:NO withTag:11];
-    [self formatWrappedTitleForButton:btnS andText:@"Segment" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:YES];
+    //[self formatWrappedTitleForButton:btnS andText:@"Segment" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:YES];
+    [btnS setTitle:@"Segment" forState:UIControlStateNormal];
+    [btnS setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
+    [self formatWrappedTitleForButton:btnS];
     
     //btnR.alpha=0.2;
     [btnS addTarget:self action:@selector(testSegmentation) forControlEvents:UIControlEventTouchUpInside];
@@ -395,26 +520,27 @@ static int memWarnig;
     //add the toolbar iterms
     //    myToolbar.items = [NSArray arrayWithObjects:pickBtn,spaceItem,pasteBtn,spaceItem, aBarButtonR, spaceItem,aBarButton,spaceItem,cancel1,spaceItem,save1,spaceItem, nil];
     [myToolbar setItems:[NSArray arrayWithObjects:pickBtn,spaceItem,cancel3,spaceItem, aBarButtonR, spaceItem,aBarButton,spaceItem,aBarButtonS,spaceItem,paste3,spaceItem,save3,spaceItem, nil] animated:YES];
-    //[myToolbar setBackgroundImage:[[UIImage alloc] init] forToolbarPosition:UIToolbarPositionAny barMetrics:UIBarMetricsDefault];
-    //myToolbar.alpha=0.7;
-    //myToolbar.translucent=YES;
-    //[myToolbar setBarTintColor:[UIColor darkGrayColor]];
+   
     [myToolbar setBarStyle:UIBarStyleBlack];
-    
-    [self.view addSubview:self.myToolbar];
-    
-    // Add constraints to position the toolbar at the top
-    [NSLayoutConstraint activateConstraints:@[
-            [myToolbar.topAnchor constraintEqualToSystemSpacingBelowAnchor:self.view.safeAreaLayoutGuide.topAnchor multiplier:1.0],
-            [myToolbar.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
-            [myToolbar.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-            // You can add a height constraint if needed
-            [myToolbar.heightAnchor constraintEqualToConstant:100]
-        ]];
-    
-    
+     
     
    
+    // Post-install sizing (NO centerY constraints)
+    dispatch_async(dispatch_get_main_queue(), ^{
+        for (UIBarButtonItem *item in self.myToolbar.items) {
+            UIView *cv = item.customView;                 // Your custom view (often UIButton)
+            if (!cv) { continue; }
+            [NSLayoutConstraint activateConstraints:@[
+                [cv.widthAnchor  constraintEqualToConstant:80],  // <= choose size
+                [cv.heightAnchor constraintEqualToConstant:80]
+            ]];
+            [cv layoutIfNeeded];
+            cv.layer.cornerRadius = 40;
+            cv.layer.masksToBounds = YES;
+        }
+    });
+
+
 
     if  (self.rootFlag==-1)
     {
@@ -453,6 +579,753 @@ static int memWarnig;
         
         
         
+    }
+}
+
+- (void)addScrollableToolbarAtTop_StackView_Circular {
+
+    // Tunables
+    const CGFloat barHeight    = 100.0;  // visible bar height
+    const CGFloat circleSize   = 80.0;   // width/height of each circular button
+    const CGFloat circleRadius = circleSize / 2.0;
+    const CGFloat spacing      = 12.0;   // space between circles
+    const CGFloat sideInset    = 12.0;   // leading/trailing insets for the stack
+
+    UIColor *accent = [UIColor colorWithRed:255.0/255.0
+                                      green:0.0/255.0
+                                       blue:128.0/255.0
+                                      alpha:1.0];
+
+    // 1) Horizontal scroll view pinned to the safe‑area top
+    self.topBarScroll = [[UIScrollView alloc] init];
+    self.topBarScroll.translatesAutoresizingMaskIntoConstraints = NO;
+    self.topBarScroll.showsHorizontalScrollIndicator = YES;
+    self.topBarScroll.alwaysBounceHorizontal = YES;
+    self.topBarScroll.alwaysBounceVertical = NO;
+    self.topBarScroll.backgroundColor = UIColor.clearColor;
+
+    [self.view addSubview:self.topBarScroll];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.topBarScroll.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor],
+        [self.topBarScroll.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.topBarScroll.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.topBarScroll.heightAnchor constraintEqualToConstant:barHeight]
+    ]];
+
+    // 2) Optional blurred background that sticks to the visible area of the bar
+    UIVisualEffectView *blurBG =
+    [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial]];
+    blurBG.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.topBarScroll addSubview:blurBG];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [blurBG.topAnchor constraintEqualToAnchor:self.topBarScroll.frameLayoutGuide.topAnchor],
+        [blurBG.bottomAnchor constraintEqualToAnchor:self.topBarScroll.frameLayoutGuide.bottomAnchor],
+        [blurBG.leadingAnchor constraintEqualToAnchor:self.topBarScroll.frameLayoutGuide.leadingAnchor],
+        [blurBG.trailingAnchor constraintEqualToAnchor:self.topBarScroll.frameLayoutGuide.trailingAnchor],
+    ]];
+
+    // 3) Content container that defines the scrollable content size
+    UIView *content = [[UIView alloc] init];
+    content.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.topBarScroll addSubview:content];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [content.topAnchor constraintEqualToAnchor:self.topBarScroll.contentLayoutGuide.topAnchor],
+        [content.bottomAnchor constraintEqualToAnchor:self.topBarScroll.contentLayoutGuide.bottomAnchor],
+        [content.leadingAnchor constraintEqualToAnchor:self.topBarScroll.contentLayoutGuide.leadingAnchor],
+        [content.trailingAnchor constraintEqualToAnchor:self.topBarScroll.contentLayoutGuide.trailingAnchor],
+        // lock height to the visible height so scrolling is horizontal-only
+        [content.heightAnchor constraintEqualToAnchor:self.topBarScroll.frameLayoutGuide.heightAnchor]
+    ]];
+
+    // 4) Horizontal UIStackView that will host the circular buttons
+    self.topBarStack = [[UIStackView alloc] init];
+    self.topBarStack.translatesAutoresizingMaskIntoConstraints = NO;
+    self.topBarStack.axis = UILayoutConstraintAxisHorizontal;
+    self.topBarStack.alignment = UIStackViewAlignmentCenter;     // vertically centers circles
+    self.topBarStack.distribution = UIStackViewDistributionFill; // we constrain circle size explicitly
+    self.topBarStack.spacing = spacing;
+
+    [content addSubview:self.topBarStack];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.topBarStack.topAnchor constraintEqualToAnchor:content.topAnchor],
+        [self.topBarStack.bottomAnchor constraintEqualToAnchor:content.bottomAnchor],
+        [self.topBarStack.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:sideInset],
+        [self.topBarStack.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-sideInset],
+    ]];
+
+    // 5) Factory: circular “pill” (actually a circle) with 80×80 size
+    //    - Centered title (wrap to 2 lines if needed)
+    //    - Uses your action selector
+    //    - Optional helper call to format your title
+    UIButton* (^makeCircle)(NSString *, SEL) = ^UIButton* (NSString *title, SEL action) {
+        UIButton *b = [UIButton buttonWithType:UIButtonTypeSystem];
+        b.translatesAutoresizingMaskIntoConstraints = NO;
+
+        // Use modern config if available (for easy padding)
+        if (@available(iOS 15.0, *)) {
+            UIButtonConfiguration *cfg = [UIButtonConfiguration plainButtonConfiguration];
+            cfg.baseForegroundColor = accent;
+            cfg.contentInsets = NSDirectionalEdgeInsetsMake(8, 8, 8, 8);
+            b.configuration = cfg;
+            [b setTitle:title forState:UIControlStateNormal];
+        } else {
+            [b setTitle:title forState:UIControlStateNormal];
+            [b setTitleColor:accent forState:UIControlStateNormal];
+            b.contentEdgeInsets = UIEdgeInsetsMake(8, 8, 8, 8);
+        }
+
+        b.titleLabel.font = [UIFont systemFontOfSize:16 weight:UIFontWeightSemibold];
+        b.titleLabel.numberOfLines = 2; // allow wrapping like "Rect\ncrop"
+        b.titleLabel.textAlignment = NSTextAlignmentCenter;
+        b.titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
+
+        if ([self respondsToSelector:@selector(formatWrappedTitleForButton:)]) {
+            [self formatWrappedTitleForButton:b];
+        }
+
+        [b addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
+
+        // Fixed circular size
+        [NSLayoutConstraint activateConstraints:@[
+            [b.widthAnchor  constraintEqualToConstant:circleSize],
+            [b.heightAnchor constraintEqualToConstant:circleSize]
+        ]];
+
+        // Perfect circle
+        b.layer.cornerRadius = circleRadius;
+        b.layer.masksToBounds = YES;
+
+        // Optional subtle fill so the circle is visible (tweak to taste)
+        // Comment this out if you want transparent circles
+        if (@available(iOS 13.0, *)) {
+            b.backgroundColor = [UIColor secondarySystemBackgroundColor];
+        } else {
+            b.backgroundColor = [UIColor colorWithWhite:0.95 alpha:1.0];
+        }
+
+        return b;
+    };
+
+    // 6) “+” circular button
+    self.btnAdd = [UIButton buttonWithType:UIButtonTypeSystem];
+    self.btnAdd.translatesAutoresizingMaskIntoConstraints = NO;
+    if (@available(iOS 13.0, *)) {
+        UIImageSymbolConfiguration *symCfg =
+            [UIImageSymbolConfiguration configurationWithPointSize:22 weight:UIImageSymbolWeightSemibold];
+        UIImage *plus = [UIImage systemImageNamed:@"plus" withConfiguration:symCfg];
+        [self.btnAdd setImage:plus forState:UIControlStateNormal];
+        [self.btnAdd setTitle:nil forState:UIControlStateNormal];
+        self.btnAdd.tintColor = accent;
+
+        if (@available(iOS 15.0, *)) {
+            UIButtonConfiguration *cfg = [UIButtonConfiguration plainButtonConfiguration];
+            cfg.baseForegroundColor = accent;
+            cfg.contentInsets = NSDirectionalEdgeInsetsMake(8, 8, 8, 8);
+            self.btnAdd.configuration = cfg;
+        } else {
+            self.btnAdd.contentEdgeInsets = UIEdgeInsetsMake(8, 8, 8, 8);
+        }
+    } else {
+        [self.btnAdd setTitle:@"+" forState:UIControlStateNormal];
+        [self.btnAdd setTitleColor:accent forState:UIControlStateNormal];
+        self.btnAdd.contentEdgeInsets = UIEdgeInsetsMake(8, 8, 8, 8);
+    }
+    [self.btnAdd addTarget:self action:@selector(actionShowPhotoLibrary) forControlEvents:UIControlEventTouchUpInside];
+
+    // Make it circular and 80×80 like the rest
+    [NSLayoutConstraint activateConstraints:@[
+        [self.btnAdd.widthAnchor  constraintEqualToConstant:circleSize],
+        [self.btnAdd.heightAnchor constraintEqualToConstant:circleSize]
+    ]];
+    self.btnAdd.layer.cornerRadius = circleRadius;
+    self.btnAdd.layer.masksToBounds = YES;
+    if (@available(iOS 13.0, *)) {
+        self.btnAdd.backgroundColor = [UIColor secondarySystemBackgroundColor];
+    } else {
+        self.btnAdd.backgroundColor = [UIColor colorWithWhite:0.95 alpha:1.0];
+    }
+
+    // 7) Other circular buttons (titles + your actions)
+    self.btnBack    = makeCircle(@"Back",       @selector(cancel));
+    self.btnRect    = makeCircle(@"Rect crop",  @selector(toogleSelectDraw:));
+    self.btnFree    = makeCircle(@"Free crop",  @selector(handleExit));
+    self.btnSegment = makeCircle(@"Segment",    @selector(testSegmentation));
+    self.btnPaste   = makeCircle(@"Paste",      @selector(actionShowPhotoLibrary1));
+    self.btnSave    = makeCircle(@"Save",       @selector(actionSave));
+
+    // 8) Add to stack in your desired order
+    for (UIView *v in @[self.btnAdd,
+                        self.btnBack,
+                        self.btnRect,
+                        self.btnFree,
+                        self.btnSegment,
+                        self.btnPaste,
+                        self.btnSave]) {
+        [self.topBarStack addArrangedSubview:v];
+    }
+
+    // 9) Initial enable/disable logic (no indices)
+    if (self.rootFlag != -1) {
+        for (UIButton *b in @[self.btnRect, self.btnFree, self.btnSegment, self.btnPaste]) {
+            b.enabled = NO;
+            b.alpha = 0.4;
+        }
+    }
+}
+
+- (void)addScrollableToolbarAtTop_StackView {
+
+    // Accent color (0..1 range)
+    UIColor *accent = [UIColor colorWithRed:255.0/255.0
+                                      green:0.0/255.0
+                                       blue:128.0/255.0
+                                      alpha:1.0];
+
+    // 1) Horizontal scroll view pinned to the safe‑area top
+    self.topBarScroll = [[UIScrollView alloc] init];
+    self.topBarScroll.translatesAutoresizingMaskIntoConstraints = NO;
+    self.topBarScroll.showsHorizontalScrollIndicator = YES;
+    self.topBarScroll.alwaysBounceHorizontal = YES;
+    self.topBarScroll.alwaysBounceVertical = NO;
+   // self.topBarScroll.backgroundColor = [UIColor greenColor]; // keep your visual cue
+
+    [self.view addSubview:self.topBarScroll];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [self.topBarScroll.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor],
+        [self.topBarScroll.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.topBarScroll.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.topBarScroll.heightAnchor constraintEqualToConstant:100.0] // bar height
+    ]];
+
+    // 2) Optional: blurred background to mimic a bar (can remove if you prefer green)
+    // Keeps its size tied to the visible area (frameLayoutGuide)
+    UIVisualEffectView *blurBG =
+    [[UIVisualEffectView alloc] initWithEffect:[UIBlurEffect effectWithStyle:UIBlurEffectStyleSystemChromeMaterial]];
+    blurBG.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.topBarScroll addSubview:blurBG];
+    [NSLayoutConstraint activateConstraints:@[
+        [blurBG.topAnchor constraintEqualToAnchor:self.topBarScroll.frameLayoutGuide.topAnchor],
+        [blurBG.bottomAnchor constraintEqualToAnchor:self.topBarScroll.frameLayoutGuide.bottomAnchor],
+        [blurBG.leadingAnchor constraintEqualToAnchor:self.topBarScroll.frameLayoutGuide.leadingAnchor],
+        [blurBG.trailingAnchor constraintEqualToAnchor:self.topBarScroll.frameLayoutGuide.trailingAnchor],
+    ]];
+
+    // 3) Content container that defines the scrollable content size.
+    // Height is locked to the visible height so we only scroll horizontally.
+    UIView *content = [[UIView alloc] init];
+    content.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.topBarScroll addSubview:content];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [content.topAnchor constraintEqualToAnchor:self.topBarScroll.contentLayoutGuide.topAnchor],
+        [content.bottomAnchor constraintEqualToAnchor:self.topBarScroll.contentLayoutGuide.bottomAnchor],
+        [content.leadingAnchor constraintEqualToAnchor:self.topBarScroll.contentLayoutGuide.leadingAnchor],
+        [content.trailingAnchor constraintEqualToAnchor:self.topBarScroll.contentLayoutGuide.trailingAnchor],
+        [content.heightAnchor constraintEqualToAnchor:self.topBarScroll.frameLayoutGuide.heightAnchor]
+    ]];
+
+    // 4) Horizontal stack view for the buttons
+    self.topBarStack = [[UIStackView alloc] init];
+    self.topBarStack.translatesAutoresizingMaskIntoConstraints = NO;
+    self.topBarStack.axis = UILayoutConstraintAxisHorizontal;
+    self.topBarStack.alignment = UIStackViewAlignmentCenter;     // vertically centers the 80x80 buttons
+    self.topBarStack.distribution = UIStackViewDistributionFill; // we’ll size buttons explicitly
+    self.topBarStack.spacing = 12.0;
+
+    [content addSubview:self.topBarStack];
+
+    // Give the stack leading/trailing insets via constraints
+    CGFloat sideInset = 12.0;
+    [NSLayoutConstraint activateConstraints:@[
+        [self.topBarStack.topAnchor constraintEqualToAnchor:content.topAnchor],
+        [self.topBarStack.bottomAnchor constraintEqualToAnchor:content.bottomAnchor],
+        [self.topBarStack.leadingAnchor constraintEqualToAnchor:content.leadingAnchor constant:sideInset],
+        [self.topBarStack.trailingAnchor constraintEqualToAnchor:content.trailingAnchor constant:-sideInset],
+    ]];
+
+    // 5) Factory to create an 80x80 rounded "pill" button
+    UIButton* (^makePill)(NSString *, SEL) = ^UIButton* (NSString *title, SEL action) {
+        UIButton *b = [UIButton buttonWithType:UIButtonTypeSystem];
+        b.translatesAutoresizingMaskIntoConstraints = NO;
+        [b setTitle:title forState:UIControlStateNormal];
+        [b setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
+        [b setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:0.5] forState:UIControlStateHighlighted];
+        b.titleLabel.font = [UIFont systemFontOfSize:16 weight:UIFontWeightSemibold];
+        b.titleLabel.numberOfLines = 2; // allows "Rect\ncrop" if needed
+        b.titleLabel.textAlignment = NSTextAlignmentCenter;
+        b.titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
+        [b addTarget:self action:action forControlEvents:UIControlEventTouchUpInside];
+
+        // Your helper for additional title formatting
+        if ([self respondsToSelector:@selector(formatWrappedTitleForButton:)]) {
+            [self formatWrappedTitleForButton:b];
+        }
+
+        [NSLayoutConstraint activateConstraints:@[
+            [b.widthAnchor constraintEqualToConstant:80.0],
+            [b.heightAnchor constraintEqualToConstant:80.0]
+        ]];
+        b.layer.cornerRadius = 40.0;
+        b.layer.masksToBounds = YES;
+
+        return b;
+    };
+
+    // 6) Build buttons (keeps your selectors)
+    // "Add" button using SF Symbols (iOS 13+); if not available, keep a title.
+    UIButton *addBtn = [UIButton buttonWithType:UIButtonTypeSystem];
+    addBtn.translatesAutoresizingMaskIntoConstraints = NO;
+    if (@available(iOS 13.0, *)) {
+        UIImage *plus = [UIImage systemImageNamed:@"plus"];
+        [addBtn setImage:plus forState:UIControlStateNormal];
+        addBtn.tintColor = accent;
+        addBtn.contentEdgeInsets = UIEdgeInsetsMake(0, 0, 0, 0);
+        addBtn.imageView.contentMode = UIViewContentModeScaleAspectFit;
+        // give it the same 80x80 pill treatment
+        [NSLayoutConstraint activateConstraints:@[
+            [addBtn.widthAnchor constraintEqualToConstant:80.0],
+            [addBtn.heightAnchor constraintEqualToConstant:80.0]
+        ]];
+        addBtn.layer.cornerRadius = 40.0;
+        addBtn.layer.masksToBounds = YES;
+    } else {
+        // Fallback if SF Symbols not available
+        [addBtn setTitle:@"Add" forState:UIControlStateNormal];
+        [addBtn setTitleColor:accent forState:UIControlStateNormal];
+        [NSLayoutConstraint activateConstraints:@[
+            [addBtn.widthAnchor constraintEqualToConstant:80.0],
+            [addBtn.heightAnchor constraintEqualToConstant:80.0]
+        ]];
+        addBtn.layer.cornerRadius = 40.0;
+        addBtn.layer.masksToBounds = YES;
+    }
+    [addBtn addTarget:self action:@selector(actionShowPhotoLibrary) forControlEvents:UIControlEventTouchUpInside];
+
+    self.btnAdd     = addBtn;
+    self.btnBack    = makePill(@"Back",       @selector(cancel));
+    self.btnRect    = makePill(@"Rect crop",  @selector(toogleSelectDraw:));
+    self.btnFree    = makePill(@"Free crop",  @selector(handleExit));
+    self.btnSegment = makePill(@"Segment",    @selector(testSegmentation));
+    self.btnPaste   = makePill(@"Paste",      @selector(actionShowPhotoLibrary1));
+    self.btnSave    = makePill(@"Save",       @selector(actionSave));
+
+    // (Optional) temporary backgrounds to visualize
+    // for (UIButton *b in @[addBtn, self.btnBack, self.btnRect, self.btnFree, self.btnSegment, self.btnPaste, self.btnSave]) {
+    //     b.backgroundColor = [UIColor colorWithWhite:0 alpha:0.15];
+    // }
+
+    // 7) Add to stack in your desired order
+    NSArray<UIView *> *buttonsInOrder = @[
+        self.btnAdd,
+        self.btnBack,
+        self.btnRect,
+        self.btnFree,
+        self.btnSegment,
+        self.btnPaste,
+        self.btnSave
+    ];
+    for (UIView *b in buttonsInOrder) {
+        [self.topBarStack addArrangedSubview:b];
+    }
+
+    // 8) Optional: tweak scroll indicators to align visually
+    self.topBarScroll.contentInset = UIEdgeInsetsZero;
+    self.topBarScroll.scrollIndicatorInsets = UIEdgeInsetsMake(0, 0, 0, 0);
+
+    // 9) Apply your initial enable/disable logic without brittle indices
+    if (self.rootFlag != -1) {
+        for (UIButton *b in @[self.btnRect, self.btnFree, self.btnSegment, self.btnPaste]) {
+            b.enabled = NO;
+            b.alpha = 0.4;
+        }
+    }
+
+    // 10) Optional: add a 1px separator at the bottom of the bar
+    UIView *separator = [[UIView alloc] init];
+    separator.translatesAutoresizingMaskIntoConstraints = NO;
+    separator.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.15];
+    [self.view addSubview:separator];
+    [NSLayoutConstraint activateConstraints:@[
+        [separator.topAnchor constraintEqualToAnchor:self.topBarScroll.bottomAnchor],
+        [separator.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [separator.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [separator.heightAnchor constraintEqualToConstant:(1.0 / UIScreen.mainScreen.scale)]
+    ]];
+}
+
+-(void)addToolBar{
+    //add toolbar
+    UIWindow *window=[[[UIApplication sharedApplication] windows] firstObject];
+    CGRect gameArea = CGRectMake(0, 0, window.bounds.size.width, window.bounds.size.height);
+    self.myToolbar = [[CustomToolbar alloc] init];
+    //self.myToolbar.backgroundColor = [UIColor blueColor];
+    
+    [self.view addSubview:self.myToolbar];
+    self.myToolbar.translatesAutoresizingMaskIntoConstraints = NO;
+    [NSLayoutConstraint activateConstraints:@[
+        [self.myToolbar.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor],
+        [self.myToolbar.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.myToolbar.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.myToolbar.heightAnchor constraintEqualToConstant:40]
+    ]];
+    self.myToolbar.translucent = NO;
+    
+    //fexible space button
+    UIBarButtonItem *spaceItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
+    
+    
+    //paste custom button
+    UIButton *paste2 = [UIButton buttonWithType:UIButtonTypeCustom];
+    paste2.translatesAutoresizingMaskIntoConstraints = NO;
+    [paste2 setTitle:@"Paste" forState:UIControlStateNormal];
+    [paste2 setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
+    [paste2 setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:0.5] forState:UIControlStateHighlighted];
+    [paste2 addTarget:self action:@selector(actionShowPhotoLibrary1) forControlEvents:UIControlEventTouchUpInside];
+    [self formatWrappedTitleForButton:paste2];
+    
+    UIBarButtonItem * paste3 = [[UIBarButtonItem alloc] initWithCustomView:paste2];
+    
+    
+    //Back custom button
+    UIButton *cancel2 = [UIButton buttonWithType:UIButtonTypeCustom];
+    [cancel2 setTitle:@"Back" forState:UIControlStateNormal];
+    [cancel2 setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
+    [cancel2 setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:0.5] forState:UIControlStateHighlighted];
+    [cancel2 addTarget:self action:@selector(cancel) forControlEvents:UIControlEventTouchUpInside];
+    [self formatWrappedTitleForButton:cancel2];
+    UIBarButtonItem * cancel3 = [[UIBarButtonItem alloc] initWithCustomView:cancel2];
+    
+    
+    //save custom button
+    UIButton *save2 = [UIButton buttonWithType:UIButtonTypeCustom];
+    save2.titleLabel.font=[UIFont systemFontOfSize: 16];
+    [save2 setTitle:@"Save" forState:UIControlStateNormal];
+    [save2 setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
+    [save2 setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:0.5] forState:UIControlStateHighlighted];
+    [save2 addTarget:self action:@selector(actionSave) forControlEvents:UIControlEventTouchUpInside];
+    [self formatWrappedTitleForButton:save2];
+    UIBarButtonItem * save3 = [[UIBarButtonItem alloc] initWithCustomView:save2];
+    
+    //picker image system button
+    UIBarButtonItem *pickBtn = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(actionShowPhotoLibrary)];
+    pickBtn.tintColor=[UIColor colorWithRed:255 green:0 blue:128 alpha:1];
+    
+    //crop draw image button
+    UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
+    UIImage *bwImageD=[UIImage imageNamed:@"crop_draw4.png"];
+    //UIImage *bwImageD=[UIImage imageNamed:@"drawCropB.png"];
+    //remove alpha channel
+    bwImageD=[self removeAlphaChannel:bwImageD];
+    const CGFloat colorMaskingD[6]={222,255,222,255,222,255};
+    UIImage *bwImageDP=[self processImage:bwImageD withMask:colorMaskingD];
+    bwImageDP=[self convertToGrayscale:bwImageDP];
+    bwImageDP=[self roundedRectImageFromImage:bwImageDP withRadious:6];
+    //[btn setImage:[UIImage imageNamed:@"crop_draw1.png"]];
+    [btn setTitle:@"Free crop" forState:UIControlStateNormal];
+    [btn setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
+    [self formatWrappedTitleForButton:btn];
+    [btn addTarget:self action:@selector(handleExit) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem * aBarButton = [[UIBarButtonItem alloc] initWithCustomView:btn];
+    //[aBarButton setBackgroundVerticalPositionAdjustment:-20.0f forBarMetrics:UIBarMetricsDefault];
+    
+    //crop rect image button
+    UIButton *btnR = [UIButton buttonWithType:UIButtonTypeCustom];
+    UIImage *bwImageR=[UIImage imageNamed:@"crop_rect3.png"];
+    //UIImage *bwImageR=[UIImage imageNamed:@"rectCropB.png"];
+    //remove alpha channel
+    bwImageR=[self removeAlphaChannel:bwImageR];
+    UIImage *bwImageRP=[self processImage:bwImageR withMask:colorMaskingD];
+    bwImageRP=[self convertToGrayscale:bwImageRP];
+    bwImageRP=[self roundedRectImageFromImage:bwImageRP withRadious:6];
+    //[btnR setBackgroundImage:[[UIImage alloc] init] forState:UIControlStateNormal];
+   
+    //[btnR setImage:bwImageRP forState:UIControlStateNormal];
+    //btnR.imageEdgeInsets=UIEdgeInsetsMake(5, 5.0f, 12, 7.0f);
+    
+    //set the label text
+    //[self formatLabelForButton:btnR withHeight:10 andVerticalOffset:btnR.frame.size.height-10 andText:@"Rect crop" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:NO withTag:11];
+    //[self formatWrappedTitleForButton:btnR andText:@"X" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:YES];
+    [btnR setTitle:@"Rect crop" forState:UIControlStateNormal];
+    [btnR setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
+    [self formatWrappedTitleForButton:btnR];
+    //btnR.alpha=0.2;
+    [btnR addTarget:self action:@selector(toogleSelectDraw:) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem * aBarButtonR = [[UIBarButtonItem alloc] initWithCustomView:btnR];
+    
+    
+    //segment image button
+    UIButton *btnS = [UIButton buttonWithType:UIButtonTypeCustom];
+    UIImage *bwImageS=[UIImage imageNamed:@"crop_rect3.png"];
+    //remove alpha channel
+    bwImageS=[self removeAlphaChannel:bwImageS];
+    UIImage *bwImageSP=[self processImage:bwImageS withMask:colorMaskingD];
+    bwImageSP=[self convertToGrayscale:bwImageSP];
+    bwImageSP=[self roundedRectImageFromImage:bwImageSP withRadious:6];
+    //[btnR setBackgroundImage:[[UIImage alloc] init] forState:UIControlStateNormal];
+
+    
+    //set the label text
+    //[self formatLabelForButton:btnS withHeight:10 andVerticalOffset:btnS.frame.size.height-10 andText:@"Segment" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:NO withTag:11];
+    //[self formatWrappedTitleForButton:btnS andText:@"Segment" withFontSize:16 withFontColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] andBoldFont:YES];
+    [btnS setTitle:@"Segment" forState:UIControlStateNormal];
+    [btnS setTitleColor:[UIColor colorWithRed:255 green:0 blue:128 alpha:1] forState:UIControlStateNormal];
+    [self formatWrappedTitleForButton:btnS];
+    
+    //btnR.alpha=0.2;
+    [btnS addTarget:self action:@selector(testSegmentation) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem * aBarButtonS = [[UIBarButtonItem alloc] initWithCustomView:btnS];
+    
+    
+    //add the toolbar iterms
+    //    myToolbar.items = [NSArray arrayWithObjects:pickBtn,spaceItem,pasteBtn,spaceItem, aBarButtonR, spaceItem,aBarButton,spaceItem,cancel1,spaceItem,save1,spaceItem, nil];
+    [myToolbar setItems:[NSArray arrayWithObjects:pickBtn,spaceItem,cancel3,spaceItem, aBarButtonR, spaceItem,aBarButton,spaceItem,aBarButtonS,spaceItem,paste3,spaceItem,save3,spaceItem, nil] animated:YES];
+   
+    [myToolbar setBarStyle:UIBarStyleBlack];
+     
+    
+   
+    // Post-install sizing (NO centerY constraints)
+    dispatch_async(dispatch_get_main_queue(), ^{
+        for (UIBarButtonItem *item in self.myToolbar.items) {
+            UIView *cv = item.customView;                 // Your custom view (often UIButton)
+            if (!cv) { continue; }
+            [NSLayoutConstraint activateConstraints:@[
+                [cv.widthAnchor  constraintEqualToConstant:80],  // <= choose size
+                [cv.heightAnchor constraintEqualToConstant:80]
+            ]];
+            [cv layoutIfNeeded];
+            cv.layer.cornerRadius = 40;
+            cv.layer.masksToBounds = YES;
+        }
+    });
+
+
+
+    if  (self.rootFlag==-1)
+    {
+//        //disable picker button
+//        UIBarButtonItem *btnPickImage=[self.myToolbar.items objectAtIndex:0];
+//        btnPickImage.style = UIBarButtonItemStylePlain;
+//        btnPickImage.enabled = false;
+//        btnPickImage.title = nil;
+    }
+    else{
+        //disable crop buttons
+        UIBarButtonItem *btnRectSelect=[self.myToolbar.items objectAtIndex:4];
+        btnRectSelect.style = UIBarButtonItemStylePlain;
+        btnRectSelect.enabled = false;
+        btnRectSelect.customView.alpha=0.4;
+        btnRectSelect.title = nil;
+        
+        UIBarButtonItem *btnDrawSelect=[self.myToolbar.items objectAtIndex:6];
+        btnDrawSelect.style = UIBarButtonItemStylePlain;
+        btnDrawSelect.enabled = false;
+        btnDrawSelect.customView.alpha=0.4;
+        btnDrawSelect.title = nil;
+        
+        UIBarButtonItem *btnSegment=[self.myToolbar.items objectAtIndex:8];
+        btnSegment.style = UIBarButtonItemStylePlain;
+        btnSegment.enabled = false;
+        btnSegment.customView.alpha=0.4;
+        btnSegment.title = nil;
+        
+        //disable pick2 button
+        UIBarButtonItem *btnPick2=[self.myToolbar.items objectAtIndex:10];
+        btnPick2.style = UIBarButtonItemStylePlain;
+        btnPick2.enabled = false;
+        btnPick2.customView.alpha=0.4;
+        btnPick2.title = nil;
+        
+        
+        
+    }
+}
+
+- (void)addToolBar2 {
+    // 1) Toolbar with Auto Layout, no frame reliance
+    UIWindow *window = [[[UIApplication sharedApplication] windows] firstObject];
+
+    self.myToolbar = [[CustomToolbar alloc] init];
+    self.myToolbar.backgroundColor = [UIColor blueColor];
+    self.myToolbar.translucent = NO;
+
+    [self.view addSubview:self.myToolbar];
+    self.myToolbar.translatesAutoresizingMaskIntoConstraints = NO;
+
+    [NSLayoutConstraint activateConstraints:@[
+        // Top toolbar
+        [self.myToolbar.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor],
+        [self.myToolbar.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.myToolbar.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.myToolbar.heightAnchor constraintEqualToConstant:100.0]
+    ]];
+
+    // 2) Create buttons (ALL with Auto Layout; no frames)
+    UIColor *accent = [UIColor colorWithRed:255 green:0 blue:128 alpha:1];
+
+    // System add
+    UIBarButtonItem *pickBtn =
+        [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd
+                                                      target:self
+                                                      action:@selector(actionShowPhotoLibrary)];
+    pickBtn.tintColor = accent;
+
+    // Paste
+    UIButton *paste2 = [UIButton buttonWithType:UIButtonTypeCustom];
+    paste2.translatesAutoresizingMaskIntoConstraints = NO;
+    paste2.titleLabel.font = [UIFont systemFontOfSize:16];
+    [paste2 setTitle:@"Paste" forState:UIControlStateNormal];
+    [paste2 setTitleColor:accent forState:UIControlStateNormal];
+    [paste2 setTitleColor:[accent colorWithAlphaComponent:0.5] forState:UIControlStateHighlighted];
+    [paste2 addTarget:self action:@selector(actionShowPhotoLibrary1) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem *paste3 = [[UIBarButtonItem alloc] initWithCustomView:paste2];
+
+    // Back
+    UIButton *cancel2 = [UIButton buttonWithType:UIButtonTypeCustom];
+    cancel2.translatesAutoresizingMaskIntoConstraints = NO;
+    cancel2.titleLabel.font = [UIFont systemFontOfSize:16];
+    [cancel2 setTitle:@"Back" forState:UIControlStateNormal];
+    [cancel2 setTitleColor:accent forState:UIControlStateNormal];
+    [cancel2 setTitleColor:[accent colorWithAlphaComponent:0.5] forState:UIControlStateHighlighted];
+    [cancel2 addTarget:self action:@selector(cancel) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem *cancel3 = [[UIBarButtonItem alloc] initWithCustomView:cancel2];
+
+    // Save
+    UIButton *save2 = [UIButton buttonWithType:UIButtonTypeCustom];
+    save2.translatesAutoresizingMaskIntoConstraints = NO;
+    save2.titleLabel.font = [UIFont systemFontOfSize:16];
+    [save2 setTitle:@"Save" forState:UIControlStateNormal];
+    [save2 setTitleColor:accent forState:UIControlStateNormal];
+    [save2 setTitleColor:[accent colorWithAlphaComponent:0.5] forState:UIControlStateHighlighted];
+    [save2 addTarget:self action:@selector(actionSave) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem *save3 = [[UIBarButtonItem alloc] initWithCustomView:save2];
+
+    // Free crop
+    UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
+    btn.translatesAutoresizingMaskIntoConstraints = NO;
+    [btn setTitle:@"Free crop" forState:UIControlStateNormal];
+    [btn setTitleColor:accent forState:UIControlStateNormal];
+    btn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
+    btn.titleLabel.numberOfLines = 0;
+    btn.titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
+    [btn addTarget:self action:@selector(handleExit) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem *aBarButton = [[UIBarButtonItem alloc] initWithCustomView:btn];
+    // REMOVE any vertical position adjustments; Auto Layout will handle it
+
+    // Rect crop
+    UIButton *btnR = [UIButton buttonWithType:UIButtonTypeCustom];
+    btnR.translatesAutoresizingMaskIntoConstraints = NO;
+    [btnR setTitle:@"Rect crop" forState:UIControlStateNormal];
+    [btnR setTitleColor:accent forState:UIControlStateNormal];
+    btnR.titleLabel.font = [UIFont boldSystemFontOfSize:16];
+    btnR.titleLabel.numberOfLines = 0;
+    btnR.titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
+    [btnR addTarget:self action:@selector(toogleSelectDraw:) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem *aBarButtonR = [[UIBarButtonItem alloc] initWithCustomView:btnR];
+
+    // Segment
+    UIButton *btnS = [UIButton buttonWithType:UIButtonTypeCustom];
+    btnS.translatesAutoresizingMaskIntoConstraints = NO;
+    [btnS setTitle:@"Segment" forState:UIControlStateNormal];
+    [btnS setTitleColor:accent forState:UIControlStateNormal];
+    btnS.titleLabel.font = [UIFont boldSystemFontOfSize:16];
+    btnS.titleLabel.numberOfLines = 0;
+    btnS.titleLabel.lineBreakMode = NSLineBreakByWordWrapping;
+    [btnS addTarget:self action:@selector(testSegmentation) forControlEvents:UIControlEventTouchUpInside];
+    UIBarButtonItem *aBarButtonS = [[UIBarButtonItem alloc] initWithCustomView:btnS];
+
+    UIBarButtonItem *spaceItem =
+        [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace
+                                                      target:nil action:nil];
+
+    // 3) Install items
+    [self.myToolbar setItems:@[
+        pickBtn,
+        spaceItem, cancel3,
+        spaceItem, aBarButtonR,
+        spaceItem, aBarButton,
+        spaceItem, aBarButtonS,
+        spaceItem, paste3,
+        spaceItem, save3
+    ] animated:NO];
+
+    // 4) Constrain every custom view (centerY + width + height)
+    // Choose sizes: for “pill” style use 80x64; for “circle” use 64x64, etc.
+    CGFloat pillWidth  = 100.0;  // wider to allow wrapping
+    CGFloat pillHeight = 64.0;
+
+    NSArray<UIBarButtonItem *> *itemsNeedingConstraints = @[ paste3, cancel3, save3, aBarButton, aBarButtonR, aBarButtonS ];
+    for (UIBarButtonItem *item in itemsNeedingConstraints) {
+        UIView *cv = item.customView;
+        if (!cv) continue;
+        cv.translatesAutoresizingMaskIntoConstraints = NO;
+        [NSLayoutConstraint activateConstraints:@[
+            [cv.centerYAnchor constraintEqualToAnchor:self.myToolbar.centerYAnchor],
+            [cv.widthAnchor constraintEqualToConstant:pillWidth],
+            [cv.heightAnchor constraintEqualToConstant:pillHeight]
+        ]];
+
+        // Improve wrapping by giving UILabel a max width (after layout)
+        if ([cv isKindOfClass:[UIButton class]]) {
+            UIButton *b = (UIButton *)cv;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [b layoutIfNeeded];
+                CGFloat available = pillWidth - (b.contentEdgeInsets.left + b.contentEdgeInsets.right);
+                if (available > 0) {
+                    b.titleLabel.preferredMaxLayoutWidth = available;
+                }
+            });
+        }
+    }
+
+    // 5) Optional: make one or more circular (80x80 or 64x64 with equal width/height)
+    // Example: make paste button circular at 64x64
+    {
+        UIView *cv = paste3.customView;
+        // Update size to square
+        for (NSLayoutConstraint *c in cv.constraints) {
+            if (c.firstAttribute == NSLayoutAttributeWidth || c.firstAttribute == NSLayoutAttributeHeight) {
+                [cv removeConstraint:c];
+            }
+        }
+        CGFloat diameter = 64.0;
+        [NSLayoutConstraint activateConstraints:@[
+            [cv.widthAnchor constraintEqualToConstant:diameter],
+            [cv.heightAnchor constraintEqualToConstant:diameter],
+            [cv.centerYAnchor constraintEqualToAnchor:self.myToolbar.centerYAnchor]
+        ]];
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [cv layoutIfNeeded];
+            cv.layer.cornerRadius = diameter / 2.0;
+            cv.layer.masksToBounds = YES;
+            cv.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.15];
+        });
+    }
+
+    [self.myToolbar setBarStyle:UIBarStyleBlack];
+
+    // 6) Disable initial buttons as you had before
+    if (self.rootFlag != -1) {
+        UIBarButtonItem *btnRectSelect = [self.myToolbar.items objectAtIndex:4];
+        btnRectSelect.enabled = NO;
+        btnRectSelect.customView.alpha = 0.4;
+
+        UIBarButtonItem *btnDrawSelect = [self.myToolbar.items objectAtIndex:6];
+        btnDrawSelect.enabled = NO;
+        btnDrawSelect.customView.alpha = 0.4;
+
+        UIBarButtonItem *btnSegment = [self.myToolbar.items objectAtIndex:8];
+        btnSegment.enabled = NO;
+        btnSegment.customView.alpha = 0.4;
+
+        UIBarButtonItem *btnPick2 = [self.myToolbar.items objectAtIndex:10];
+        btnPick2.enabled = NO;
+        btnPick2.customView.alpha = 0.4;
     }
 }
 
@@ -635,6 +1508,23 @@ static int memWarnig;
 } // End formatLabelForButton
 
 - (void)formatWrappedTitleForButton:(UIButton *)button
+{
+    //wrap text
+    // unlimited lines (or 2 if you want a cap)
+    button.titleLabel.numberOfLines = 0;
+    button.titleLabel.lineBreakMode = NSLineBreakByWordWrapping; // or NSLineBreakByCharWrapping for single long words
+    button.titleLabel.textAlignment = NSTextAlignmentCenter;
+
+    // 2) Disable auto-shrink (it fights wrapping)
+    button.titleLabel.adjustsFontSizeToFitWidth = NO;
+    button.titleLabel.minimumScaleFactor = 1.0;
+
+    // 3) Set font & title
+    button.titleLabel.font = [UIFont boldSystemFontOfSize:16];
+    button.contentEdgeInsets = UIEdgeInsetsMake(6, 10, 6, 10);
+}
+
+- (void)formatWrappedTitleForButton2:(UIButton *)button
                                 andText:(NSString *)labelText
                             withFontSize:(double)fontSize
                            withFontColor:(UIColor *)color
@@ -651,6 +1541,12 @@ static int memWarnig;
         button.titleLabel.numberOfLines = 2;
         button.titleLabel.lineBreakMode = NSLineBreakByWordWrapping; // Breaks at spaces
         button.titleLabel.textAlignment = NSTextAlignmentCenter;
+        
+        button.layer.borderWidth = 1;
+        button.layer.masksToBounds = false;
+        button.layer.borderColor = UIColor.blackColor.CGColor;
+        button.layer.cornerRadius = button.frame.size.height / 2;
+        button.clipsToBounds = true;
 
         // ... rest of your existing font and title code ...
         UIFont *font = formatAsBold ? [UIFont boldSystemFontOfSize:fontSize] : [UIFont systemFontOfSize:fontSize];
@@ -1399,6 +2295,15 @@ static int memWarnig;
 -(void)enableButtons
 {
     @try {
+        
+        // 9) Initial enable/disable logic (no indices)
+        //if (self.rootFlag != -1) {
+            for (UIButton *b in @[self.btnRect, self.btnFree, self.btnSegment, self.btnPaste,self.btnSave]) {
+                b.enabled = YES;
+                b.alpha = 0.4;
+            }
+        //}
+        /*
         //enable crop buttons
         UIBarButtonItem *btnRectSelect=[self.myToolbar.items objectAtIndex:4];
         btnRectSelect.style = UIBarButtonItemStylePlain;
@@ -1430,7 +2335,7 @@ static int memWarnig;
         btnSave.style = UIBarButtonItemStylePlain;
         btnSave.enabled = true;
         btnSave.customView.alpha=1.0;
-        btnSave.title = nil;
+        btnSave.title = nil;*/
     }
     @catch (NSException *exception) {
         
@@ -1443,6 +2348,17 @@ static int memWarnig;
 -(void)enableButtons2
 {
     @try {
+        // 9) Initial enable/disable logic (no indices)
+        
+            for (UIButton *b in @[self.btnRect, self.btnFree, self.btnSegment]) {
+                b.enabled = YES;
+                b.alpha = 0.4;
+            }
+            for (UIButton *b in @[self.btnSave, self.btnPaste]) {
+                b.enabled = YES;
+                b.alpha = 0.4;
+            }
+        
         //enable crop buttons
         UIBarButtonItem *btnRectSelect=[self.myToolbar.items objectAtIndex:4];
         btnRectSelect.style = UIBarButtonItemStylePlain;

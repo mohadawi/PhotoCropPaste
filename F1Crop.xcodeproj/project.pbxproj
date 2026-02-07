@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		4E0B5DC31B42EC250040E942 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4E0B5DC21B42EC250040E942 /* Images.xcassets */; };
 		4E582C781AAE18B100ECCAD5 /* CoreImage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E582C771AAE18B100ECCAD5 /* CoreImage.framework */; };
+		4E7DF6082F369816006086DB /* CustomToolbar.m in Sources */ = {isa = PBXBuildFile; fileRef = 4E7DF6072F369816006086DB /* CustomToolbar.m */; };
 		4E80FAAF1AE97507004207CF /* Launch Screen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4E80FAAE1AE97507004207CF /* Launch Screen.xib */; };
 		4E80FAB11AE97CC2004207CF /* launch1.png in Resources */ = {isa = PBXBuildFile; fileRef = 4E80FAB01AE97CC2004207CF /* launch1.png */; };
 		4E80FAB31AE9831A004207CF /* lauch2.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 4E80FAB21AE9831A004207CF /* lauch2.jpg */; };
@@ -40,6 +41,8 @@
 /* Begin PBXFileReference section */
 		4E0B5DC21B42EC250040E942 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		4E582C771AAE18B100ECCAD5 /* CoreImage.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreImage.framework; path = System/Library/Frameworks/CoreImage.framework; sourceTree = SDKROOT; };
+		4E7DF6072F369816006086DB /* CustomToolbar.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CustomToolbar.m; sourceTree = "<group>"; };
+		4E7DF6092F36982F006086DB /* CustomToolbar.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CustomToolbar.h; sourceTree = "<group>"; };
 		4E80FAAD1AE8E7AB004207CF /* Constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Constants.h; path = F1Crop/Constants.h; sourceTree = "<group>"; };
 		4E80FAAE1AE97507004207CF /* Launch Screen.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "Launch Screen.xib"; sourceTree = "<group>"; };
 		4E80FAB01AE97CC2004207CF /* launch1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = launch1.png; path = F1Crop/launch1.png; sourceTree = "<group>"; };
@@ -141,6 +144,8 @@
 		4EACEDEA17662CC5003327B3 /* F1Crop */ = {
 			isa = PBXGroup;
 			children = (
+				4E7DF6092F36982F006086DB /* CustomToolbar.h */,
+				4E7DF6072F369816006086DB /* CustomToolbar.m */,
 				4E919CDD1A8A856C004989E1 /* crop_rect3.png */,
 				4E919CD71A8A80A1004989E1 /* crop_draw4.png */,
 				4EACEDF317662CC5003327B3 /* AppDelegate.h */,
@@ -261,6 +266,7 @@
 				4ED33DC21A6C4A960035D663 /* UIImage-Orientation.m in Sources */,
 				4EACEDF517662CC5003327B3 /* AppDelegate.m in Sources */,
 				4EACEE0417662CC5003327B3 /* ViewController.mm in Sources */,
+				4E7DF6082F369816006086DB /* CustomToolbar.m in Sources */,
 				4E9B7A1E19E1C37D00A6A17B /* CvGrabCutController.mm in Sources */,
 				4EEE99B719CA02F400EB61BD /* canvas.mm in Sources */,
 				4EEE99BA19CA051D00EB61BD /* UIImage+ImageBlur.m in Sources */,

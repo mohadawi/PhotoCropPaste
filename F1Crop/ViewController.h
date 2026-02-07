@@ -9,6 +9,7 @@
 #import <UIKit/UIKit.h>
 #import "canvas.h"
 #import "CvGrabCutController.h"
+#import "CustomToolbar.h"
 
 
 using namespace cv;
@@ -61,9 +62,21 @@ typedef cv::vector<cv::vector<cv::Point> > TContours;
     IBOutlet UIBarButtonItem* buttonGrabCut;
     IBOutlet UIBarButtonItem* selectDraw;
     UIImagePickerController *imagePicker;
-    UIToolbar *myToolbar;
+    CustomToolbar *myToolbar;
     UIActivityIndicatorView *activityIndicator;
 }
+
+@property (nonatomic, strong) UIScrollView *topBarScroll;
+@property (nonatomic, strong) UIStackView  *topBarStack;
+
+@property (nonatomic, strong) UIButton *btnAdd;
+@property (nonatomic, strong) UIButton *btnBack;
+@property (nonatomic, strong) UIButton *btnRect;
+@property (nonatomic, strong) UIButton *btnFree;
+@property (nonatomic, strong) UIButton *btnSegment;
+@property (nonatomic, strong) UIButton *btnPaste;
+@property (nonatomic, strong) UIButton *btnSave;
+
 @property CGPoint location;
 @property CGRect  imageRect;
 @property ShapeType shapeType;
@@ -90,7 +103,7 @@ typedef cv::vector<cv::vector<cv::Point> > TContours;
 
 @property int pickBtnFlag;
 @property (nonatomic) UIImagePickerController *imagePicker;
-@property (nonatomic,retain) UIToolbar *myToolbar;
+@property (nonatomic,retain) CustomToolbar *myToolbar;
 @property (nonatomic,retain) UIActivityIndicatorView *activityIndicator;
 
 
